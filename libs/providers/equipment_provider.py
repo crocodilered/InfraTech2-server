@@ -49,16 +49,17 @@ class EquipmentProvider:
         Search equipment by title and inventory number.
         :param conn: MySql connection
         :param terms: Search term
-        :return: List of tuples
+        :return: List of dicts
         """
-        r = None
+        r = []
         if conn and terms:
             cursor = conn.cursor()
             sql = EquipmentProvider.SQL_FILTER.format(terms.lower())
             cursor.execute(sql)
-            # TODO: use namedtuple: item = Car(*row)
             rows = cursor.fetchall()
-            r = rows
+            fields = ['id', 'identifier', 'title', 'description']
+            for row in rows:
+                r.append(dict(zip(fields, row)))
         return r
 
     @staticmethod
