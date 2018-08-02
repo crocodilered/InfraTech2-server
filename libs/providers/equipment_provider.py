@@ -6,8 +6,6 @@ from collections import namedtuple
 
 class EquipmentProvider:
 
-    EQUIPMENT = namedtuple('Equipment', 'id identifier title description')
-
     SQL_FILTER = '''
         SELECT
             id,
@@ -19,8 +17,7 @@ class EquipmentProvider:
             LOWER(identifier) LIKE "%{0}%" OR 
             LOWER(title) LIKE "%{0}%"
         ORDER BY 
-            title
-    '''
+            title'''
 
     SQL_INSERT = '''
         INSERT INTO equipment (
@@ -31,8 +28,7 @@ class EquipmentProvider:
             "{1}",
             "{2}",
             "{3}"
-        )
-    '''
+        )'''
 
     SQL_UPDATE = '''
         UPDATE equipment SET
@@ -40,8 +36,7 @@ class EquipmentProvider:
             title = "{2}",
             description = "{3}"
         WHERE
-            id = {0}
-    '''
+            id = {0}'''
 
     @staticmethod
     def filter(conn, terms: str=None):
