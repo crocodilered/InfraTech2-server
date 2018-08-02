@@ -55,7 +55,7 @@ class EquipmentProvider:
             fields = ['id', 'identifier', 'title', 'description']
             for row in rows:
                 r.append(dict(zip(fields, row)))
-        return r
+        return r if len(r) > 0 else None
 
     @staticmethod
     def post(conn, item: list = None):
