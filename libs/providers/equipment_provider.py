@@ -1,10 +1,11 @@
 __all__ = ['EquipmentProvider']
 
 
-from collections import namedtuple
-
-
 class EquipmentProvider:
+
+    FIELDS = ['id', 'identifier', 'title', 'description']
+
+    SQL_COUNT = 'SELECT COUNT(id) FROM equipment'
 
     SQL_FILTER = '''
         SELECT
@@ -25,18 +26,18 @@ class EquipmentProvider:
             title,
             description
         ) VALUES (
-            "{1}",
-            "{2}",
-            "{3}"
+            "{identifier}",
+            "{title}",
+            "{description}"
         )'''
 
     SQL_UPDATE = '''
         UPDATE equipment SET
-            identifier = "{1}",
-            title = "{2}",
-            description = "{3}"
+            identifier = "{identifier}",
+            title = "{title}",
+            description = "{description}"
         WHERE
-            id = {0}'''
+            id = {id}'''
 
     @staticmethod
     def filter(conn, terms: str=None):
@@ -46,31 +47,37 @@ class EquipmentProvider:
         :param terms: Search term
         :return: List of dicts
         """
-        r = []
         if conn and terms:
+            r = []
             cursor = conn.cursor()
             sql = EquipmentProvider.SQL_FILTER.format(terms.lower())
             cursor.execute(sql)
-            rows = cursor.fetchall()
-            fields = ['id', 'identifier', 'title', 'description']
-            for row in rows:
-                r.append(dict(zip(fields, row)))
-        return r if len(r) > 0 else None
+            for row in cursor.fetchall():
+                r.append(dict(zip(EquipmentProvider.FIELDS, row)))
+            return r
+        return None
 
     @staticmethod
-    def post(conn, item: list = None):
+    def post(conn, item: dict = None):
         """
         Create or update equipment record.
         :param conn: MySql connection.
-        :param item: List of item's data: [id, inventory_num, title, description]
+        :param item: Dict with item's data: id, identifier, title, description
         :return: True in any case.
         """
-        if conn and item and len(item) == 4:
+        if conn and item:
             cursor = conn.cursor()
-            if item[0] == 0:
-                sql = EquipmentProvider.SQL_INSERT.format(*item)
-            else:
-                sql = EquipmentProvider.SQL_UPDATE.format(*item)
-            cursor.execute(sql)
+            sql = EquipmentProvider.SQL_INSERT if item['id'] == 0 else EquipmentProvider.SQL_UPDATE
+            cursor.execute(sql.format(**item))
             conn.commit()
             return True
+        return False
+
+    @staticmethod
+    def count(conn):
+        r = None
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute(EquipmentProvider.SQL_COUNT)
+            r = cursor.fetchone()[0]
+        return r

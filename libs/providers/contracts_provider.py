@@ -3,6 +3,10 @@ __all__ = ['ContractsProvider']
 
 class ContractsProvider:
 
+    FIELDS = ['id', 'identifier', 'contractorTitle', 'value', 'beginDate', 'endDate']
+
+    SQL_COUNT = 'SELECT COUNT(id) FROM contract'
+
     # Using DATE_FORMAT cos of date type is not JSON-serializable
     SQL_FILTER = '''
         SELECT
@@ -17,8 +21,7 @@ class ContractsProvider:
             LOWER(identifier) LIKE "%{0}%" OR 
             LOWER(contractor_title) LIKE "%{0}%"
         ORDER BY 
-            contractor_title
-    '''
+            contractor_title'''
 
     SQL_INSERT = '''
         INSERT INTO contract (
@@ -28,24 +31,22 @@ class ContractsProvider:
             begin_date,
             end_date
         ) VALUES (
-            "{1}",
-            "{2}",
-            "{3}",
-            "{4}",
-            "{5}"
-        )
-    '''
+            "{identifier}",
+            "{contractorTitle}",
+            "{value}",
+            "{beginDate}",
+            "{endDate}"
+        )'''
 
     SQL_UPDATE = '''
         UPDATE contract SET
-            identifier = "{1}",
-            contractor_title = "{2}",
-            value = "{3}",
-            begin_date = "{4}",
-            end_date = "{5}"
+            identifier = "{identifier}",
+            contractor_title = "{contractorTitle}",
+            value = "{value}",
+            begin_date = "{beginDate}",
+            end_date = "{endDate}"
         WHERE
-            id = {0}
-    '''
+            id = {id}'''
 
     SQL_CURRENT_LIST = '''
         SELECT
@@ -60,8 +61,7 @@ class ContractsProvider:
             CURDATE() > begin_date AND
             CURDATE() <= end_date
         ORDER BY 
-            contractor_title
-    '''
+            contractor_title'''
 
     @staticmethod
     def filter(conn, terms: str=None):
@@ -71,39 +71,47 @@ class ContractsProvider:
         :param terms: Search term
         :return: List of tuples
         """
-        r = None
+        r = []
         if conn and terms:
             cursor = conn.cursor()
             sql = ContractsProvider.SQL_FILTER.format(terms.lower())
             cursor.execute(sql)
             rows = cursor.fetchall()
-            r = rows
-        return r
+            for row in rows:
+                r.append(dict(zip(ContractsProvider.FIELDS, row)))
+        return r if len(r) > 0 else None
 
     @staticmethod
-    def post(conn, item: list = None):
+    def post(conn, item: dict = None):
         """
         Create or update contractor record.
         :param conn: MySql connection.
         :param item: List of item's data: [id, contract_num, title, value, 'begin_date', 'end_date']
         :return: True in any case.
         """
-        if conn and item and len(item) == 6:
+        if conn and item:
             cursor = conn.cursor()
-            if item[0] == 0:
-                sql = ContractsProvider.SQL_INSERT.format(*item)
-            else:
-                sql = ContractsProvider.SQL_UPDATE.format(*item)
-            cursor.execute(sql)
+            sql = ContractsProvider.SQL_INSERT if item['id'] == 0 else ContractsProvider.SQL_UPDATE
+            cursor.execute(sql.format(**item))
             conn.commit()
-            return True
+        return True
 
     @staticmethod
     def current_list(conn):
-        r = None
+        r = []
         if conn:
             cursor = conn.cursor()
             cursor.execute(ContractsProvider.SQL_CURRENT_LIST)
             rows = cursor.fetchall()
-            r = rows
+            for row in rows:
+                r.append(dict(zip(ContractsProvider.FIELDS, row)))
+        return r if len(r) > 0 else None
+
+    @staticmethod
+    def count(conn):
+        r = None
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute(ContractsProvider.SQL_COUNT)
+            r = cursor.fetchone()[0]
         return r
