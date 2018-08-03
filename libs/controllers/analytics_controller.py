@@ -1,5 +1,7 @@
 import cherrypy as cp
 from libs.controllers.base_controller import BaseController
+from libs.providers.equipment_provider import EquipmentProvider
+from libs.providers.contracts_provider import ContractsProvider
 
 
 __all__ = ['AnalyticsController']
@@ -19,9 +21,9 @@ class AnalyticsController(BaseController):
         """ Return all the data needed on the dashboard """
         r = {'errorCode': 0}
         conn = cp.request.db
+        cursor = conn.cursor()
 
         # Budget execution
-        cursor = conn.cursor()
         sql = '''
             SELECT 
                 DATE_FORMAT(begin_date, "%Y-%m-%d"), 
@@ -46,11 +48,19 @@ class AnalyticsController(BaseController):
         cursor.execute(sql)
         budget_exec_row = cursor.fetchone()
 
+        equipment_count = EquipmentProvider.count(conn)
+        contracts_count = ContractsProvider.count(conn)
+
         r['budget'] = {
             'beginDate': budget_row[0],
             'endDate': budget_row[1],
             'value': budget_row[2],
-            'execution': budget_exec_row[0],
+            'execution': budget_exec_row[0]
+        }
+
+        r['directories'] = {
+            'equipmentCount': equipment_count,
+            'contractsCount': contracts_count
         }
 
         return r
